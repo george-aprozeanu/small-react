@@ -1,31 +1,23 @@
-import resolve from 'rollup-plugin-node-resolve'
-import babel from 'rollup-plugin-babel'
-import cjs from 'rollup-plugin-commonjs'
-import replace from 'rollup-plugin-replace'
+import resolve from 'rollup-plugin-node-resolve';
+import babel from 'rollup-plugin-babel';
+import cjs from 'rollup-plugin-commonjs';
+import replace from 'rollup-plugin-replace';
 
-import nodeEval from 'node-eval'
+import nodeEval from 'node-eval';
 
-const extensions = ['.js', '.jsx', '.ts', '.tsx']
+const extensions = ['.js', '.jsx', '.ts', '.tsx'];
 
 export function getModuleExports(moduleId) {
-	const id = require.resolve(moduleId)
-	const moduleOut = nodeEval(require('fs').readFileSync(id).toString(), id)
-	let result = []
-	const excludeExports = /^(default|__)/
-	if (moduleOut && typeof moduleOut === 'object') {
-		result = Object.keys(moduleOut)
-			.filter(name => !excludeExports.test(name))
-	}
+	const id = require.resolve(moduleId);
+	const moduleOut = nodeEval(require('fs').readFileSync(id).toString(), id);
+	const excludeExports = /^(default|__)/;
+	return moduleOut && typeof moduleOut === 'object' ? Object.keys(moduleOut)
+		.filter(name => !excludeExports.test(name)) : [];
+}
 
-	return result
-}
-export function getNamedExports(moduleIds) {
-	const result = {}
-	moduleIds.forEach(id => {
-		result[id] = getModuleExports(id)
-	})
-	return result
-}
+const getNamedExports = (...modules) => modules
+	.map(id => ({[id] : getModuleExports(id)}))
+	.reduce(Object.assign, {});
 
 export default {
 	plugins: [
@@ -33,7 +25,7 @@ export default {
 		replace({ 'process.env.NODE_ENV': JSON.stringify('production') }),
 		cjs({
 			extensions: ['.js'],
-			namedExports: getNamedExports(['react', 'react-dom'])
+			namedExports: getNamedExports('react', 'react-dom')
 		}),
 		babel({
 			extensions,
